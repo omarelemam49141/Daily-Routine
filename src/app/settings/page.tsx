@@ -1,0 +1,164 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { toast } from "sonner";
+import { ensureAnonymousUser, getFirebase } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  useNotificationSettings,
+  useRequestBrowserNotificationPermission,
+} from "@/hooks/use-notification-settings";
+import { useHygieneStore } from "@/stores/hygiene-store";
+
+export default function SettingsPage() {
+  const resetToSeed = useHygieneStore((s) => s.resetToSeed);
+  const {
+    enabled,
+    pushEnabled,
+    morningTime,
+    eveningTime,
+    setEnabled,
+    setPushEnabled,
+    setMorningTime,
+    setEveningTime,
+  } = useNotificationSettings();
+  const requestPerm = useRequestBrowserNotificationPermission();
+
+  const [fbOk, setFbOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void getFirebase().then((f) => setFbOk(Boolean(f)));
+  }, []);
+
+  return (
+    <div className="space-y-4 pb-4">
+      <div>
+        <h1 className="text-2xl font-black text-teal-950 dark:text-white">الإعدادات</h1>
+        <p className="text-sm text-teal-900/55 dark:text-white/50">
+          تذكيرات، سحابة اختيارية، وإعادة ضبط البيانات
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">التذكيرات</CardTitle>
+          <CardDescription>داخل التطبيق + إشعار المتصفح (إن وُجد)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="en">تفعيل التذكيرات</Label>
+            <Switch id="en" checked={enabled} onCheckedChange={setEnabled} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>صباحاً</Label>
+              <Input
+                type="time"
+                value={morningTime}
+                onChange={(e) => setMorningTime(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>مساءً</Label>
+              <Input
+                type="time"
+                value={eveningTime}
+                onChange={(e) => setEveningTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <Label htmlFor="push">إشعارات المتصفح</Label>
+              <p className="text-xs text-teal-800/55 dark:text-white/45">
+                يحتاج إذناً من المتصفح
+              </p>
+            </div>
+            <Switch id="push" checked={pushEnabled} onCheckedChange={setPushEnabled} />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            className="w-full"
+            onClick={async () => {
+              const r = await requestPerm();
+              if (r === "granted") {
+                setPushEnabled(true);
+                toast.success("تم تفعيل إذن الإشعارات");
+              } else if (r === "denied") {
+                toast.error("تم رفض الإذن");
+              } else {
+                toast.message("المتصفح لا يدعم الإشعارات");
+              }
+            }}
+          >
+            طلب إذن الإشعارات
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Firebase (اختياري)</CardTitle>
+          <CardDescription>
+            عند إضافة مفاتيح البيئة يمكن تفعيل الدخول المجهول لاحقاً للمزامنة
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-teal-900/65 dark:text-white/60">
+            الحالة:{" "}
+            <span className="font-bold">
+              {fbOk === null
+                ? "…"
+                : fbOk
+                  ? "مُعدّ (يمكن تسجيل الدخول)"
+                  : "غير مُعد — التخزين محلي فقط"}
+            </span>
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            disabled={!fbOk}
+            onClick={async () => {
+              const uid = await ensureAnonymousUser();
+              if (uid) toast.success("تم تسجيل الدخول المجهول");
+              else toast.error("تعذر الاتصال بـ Firebase");
+            }}
+          >
+            تسجيل دخول مجهول
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card className="border-rose-300/40">
+        <CardHeader>
+          <CardTitle className="text-base text-rose-800 dark:text-rose-200">منطقة خطرة</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-rose-300/60 text-rose-700"
+            onClick={() => {
+              if (confirm("إعادة ضبط كل البيانات للقيم الافتراضية؟")) {
+                resetToSeed();
+                toast.success("تمت إعادة الضبط");
+              }
+            }}
+          >
+            إعادة ضبط البيانات الافتراضية
+          </Button>
+          <Button asChild variant="secondary" className="w-full">
+            <Link href="/products">إدارة المنتجات</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -1,0 +1,12 @@
+{
+  "name": "روتين النظافة",
+  "short_name": "النظافة",
+  "description": "روتين نظافة يومي، جدول، وميزانية",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0fdfa",
+  "theme_color": "#14b8a6",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": []
+}
