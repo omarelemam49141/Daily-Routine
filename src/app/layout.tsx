@@ -5,6 +5,8 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { Providers } from "@/components/providers";
 import { RegisterServiceWorker } from "@/components/register-sw";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 const arabicFont = Tajawal({
   subsets: ["arabic", "latin"],
   variable: "--font-ar",
@@ -14,7 +16,7 @@ const arabicFont = Tajawal({
 export const metadata: Metadata = {
   title: "روتين النظافة",
   description: "تنظيم روتين النظافة اليومي، الجدول، والميزانية",
-  manifest: "/manifest.webmanifest",
+  manifest: `${basePath}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
