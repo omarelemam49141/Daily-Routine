@@ -51,8 +51,13 @@ export function toDateKey(d: Date): string {
   return format(d, "yyyy-MM-dd");
 }
 
-function completionStorageKey(dateKey: string, instanceKey: string): string {
+/** Stable key for `completions` map — use in UI selectors so toggles re-render. */
+export function completionMapKey(dateKey: string, instanceKey: string): string {
   return `${dateKey}::${instanceKey}`;
+}
+
+function completionStorageKey(dateKey: string, instanceKey: string): string {
+  return completionMapKey(dateKey, instanceKey);
 }
 
 interface HygieneState {

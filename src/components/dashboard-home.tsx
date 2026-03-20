@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { arabicDayName } from "@/lib/schedule";
 import { slotLabelAr, slotTimeAr } from "@/lib/slots";
@@ -12,19 +12,127 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNotificationSettings } from "@/hooks/use-notification-settings";
+import type { DueRoutineInstance } from "@/types";
 import {
+  completionMapKey,
   importanceBadgeClass,
   useHygieneStore,
   toDateKey,
 } from "@/stores/hygiene-store";
 
+function TodayTaskRow({
+  item,
+  dateKey,
+  idx,
+  morningTime,
+  eveningTime,
+}: {
+  item: DueRoutineInstance;
+  dateKey: string;
+  idx: number;
+  morningTime: string;
+  eveningTime: string;
+}) {
+  const mapKey = completionMapKey(dateKey, item.instanceKey);
+  const selectDone = useCallback(
+    (s: { completions: Record<string, boolean> }) => Boolean(s.completions[mapKey]),
+    [mapKey],
+  );
+  const doneToday = useHygieneStore(selectDone);
+  const toggleCompletion = useHygieneStore((s) => s.toggleCompletion);
+
+  const handleToggle = () => {
+    const wasDone = doneToday;
+    toggleCompletion(dateKey, item.instanceKey);
+    toast.success(wasDone ? "أُلغي الإتمام" : "تم الإنجاز", {
+      description: item.name,
+    });
+  };
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.3 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ delay: idx * 0.03, duration: 0.25, ease: "easeOut" }}
+      whileHover={{ y: -2 }}
+    >
+      <Card
+        className={
+          doneToday
+            ? "cursor-pointer border-emerald-400/40 bg-emerald-500/5 transition-colors"
+            : "cursor-pointer transition-colors hover:border-teal-300/50"
+        }
+        role="button"
+        tabIndex={0}
+        aria-pressed={doneToday}
+        aria-label={`تبديل إتمام: ${item.name}`}
+        onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+      >
+        <CardContent className="flex items-center gap-3 p-4">
+          <div
+            aria-hidden
+            className="pointer-events-none shrink-0 rounded-2xl p-1"
+          >
+            <CheckCircle2
+              className={
+                doneToday
+                  ? "h-8 w-8 text-emerald-500"
+                  : "h-8 w-8 text-teal-300 dark:text-white/20"
+              }
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-bold text-teal-950 dark:text-white">{item.name}</p>
+              <Badge
+                className={importanceBadgeClass(item.importance)}
+                variant="outline"
+              >
+                {item.importance === "essential"
+                  ? "أساسي"
+                  : item.importance === "important"
+                    ? "مهم"
+                    : "بونص"}
+              </Badge>
+              <span className="text-xs text-teal-800/60 dark:text-white/50">
+                {slotLabelAr(item.slot)} · {slotTimeAr(item.slot, morningTime, eveningTime)}
+              </span>
+            </div>
+            <p className="text-xs text-teal-900/50 dark:text-white/45">
+              ~{item.estimatedMinutes} دقيقة
+            </p>
+          </div>
+          <Button size="sm" variant="ghost" asChild className="shrink-0">
+            <Link
+              href={`/routines/${item.routineId}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              تفاصيل
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 export function DashboardHome() {
   const hydrated = useHygieneStore((s) => s.hydrated);
+  /** Subscribe to completions so toggles re-render (selecting only store actions does not). */
+  const completions = useHygieneStore((s) => s.completions);
   const getDueToday = useHygieneStore((s) => s.getDueToday);
   const getProgressToday = useHygieneStore((s) => s.getProgressToday);
   const getStreak = useHygieneStore((s) => s.getStreak);
   const getNextIncomplete = useHygieneStore((s) => s.getNextIncomplete);
-  const isCompleted = useHygieneStore((s) => s.isCompleted);
   const toggleCompletion = useHygieneStore((s) => s.toggleCompletion);
 
   const { morningTime, eveningTime } = useNotificationSettings();
@@ -37,7 +145,7 @@ export function DashboardHome() {
   );
   const { done, total, ratio } = useMemo(
     () => (hydrated ? getProgressToday(today) : { done: 0, total: 0, ratio: 0 }),
-    [getProgressToday, hydrated, today],
+    [completions, getProgressToday, hydrated, today],
   );
   const streak = hydrated ? getStreak() : 0;
   const nextUp = hydrated ? getNextIncomplete(today) : null;
@@ -135,71 +243,16 @@ export function DashboardHome() {
           مهام اليوم
         </h2>
         <AnimatePresence initial={false}>
-          {due.map((item, idx) => {
-            const doneToday = isCompleted(dateKey, item.instanceKey);
-            return (
-              <motion.div
-                key={item.instanceKey}
-                layout
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.3 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ delay: idx * 0.03, duration: 0.25, ease: "easeOut" }}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.99 }}
-              >
-                <Card
-                  className={
-                    doneToday
-                      ? "border-emerald-400/40 bg-emerald-500/5"
-                      : "hover:border-teal-300/50"
-                  }
-                >
-                  <CardContent className="flex items-center gap-3 p-4">
-                    <button
-                      type="button"
-                      aria-label="تبديل الإتمام"
-                      onClick={() => toggleCompletion(dateKey, item.instanceKey)}
-                      className="shrink-0 rounded-2xl p-1 transition-transform active:scale-95"
-                    >
-                      <CheckCircle2
-                        className={
-                          doneToday
-                            ? "h-8 w-8 text-emerald-500"
-                            : "h-8 w-8 text-teal-300 dark:text-white/20"
-                        }
-                      />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-bold text-teal-950 dark:text-white">{item.name}</p>
-                        <Badge
-                          className={importanceBadgeClass(item.importance)}
-                          variant="outline"
-                        >
-                          {item.importance === "essential"
-                            ? "أساسي"
-                            : item.importance === "important"
-                              ? "مهم"
-                              : "بونص"}
-                        </Badge>
-                        <span className="text-xs text-teal-800/60 dark:text-white/50">
-                          {slotLabelAr(item.slot)} · {slotTimeAr(item.slot, morningTime, eveningTime)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-teal-900/50 dark:text-white/45">
-                        ~{item.estimatedMinutes} دقيقة
-                      </p>
-                    </div>
-                    <Button size="sm" variant="ghost" asChild>
-                      <Link href={`/routines/${item.routineId}`}>تفاصيل</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
+          {due.map((item, idx) => (
+            <TodayTaskRow
+              key={item.instanceKey}
+              item={item}
+              dateKey={dateKey}
+              idx={idx}
+              morningTime={morningTime}
+              eveningTime={eveningTime}
+            />
+          ))}
         </AnimatePresence>
       </section>
       </div>
