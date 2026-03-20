@@ -16,14 +16,27 @@ function Spinner() {
   );
 }
 
+const README_SECRETS_URL =
+  "https://github.com/omarelemam49141/Daily-Routine/blob/main/README.md";
+
 function FirebaseMissing() {
   return (
     <div className="space-y-3 py-10 text-center">
       <p className="font-bold text-teal-950 dark:text-white">تعذر تفعيل الدخول</p>
       <p className="text-sm text-teal-900/65 dark:text-white/55">
-        لم تُضبط مفاتيح Firebase في البناء. أضف المتغيرات{" "}
-        <code className="rounded bg-teal-500/10 px-1">NEXT_PUBLIC_FIREBASE_*</code> في أسرار
-        GitHub ثم أعد النشر.
+        لم تُضبط مفاتيح Firebase في البناء. أضف أسرار{" "}
+        <code className="rounded bg-teal-500/10 px-1">NEXT_PUBLIC_FIREBASE_*</code> في GitHub
+        ثم أعد تشغيل سير العمل (Deploy).
+      </p>
+      <p className="text-sm">
+        <a
+          href={README_SECRETS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-teal-700 underline underline-offset-2 dark:text-teal-300"
+        >
+          خطوات مفصّلة في README
+        </a>
       </p>
     </div>
   );

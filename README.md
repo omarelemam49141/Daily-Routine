@@ -37,6 +37,27 @@ npx --yes serve out
 
 > **ملاحظة:** صفحات تفاصيل الروتين `/routines/[id]` تُبنى مسبقاً لروتينات الـ seed فقط. روابط معرفات جديدة (مضافة يدوياً) قد لا تعمل عند فتحها مباشرة على الاستضافة الثابتة.
 
+### إذا ظهرت «تعذر تفعيل الدخول»
+
+يعني أن **بناء GitHub Actions** لم يجد مفاتيح Firebase (لم تُضف أسرار المستودع أو البناء تم قبل إضافتها).
+
+1. افتح [Firebase Console](https://console.firebase.google.com) → مشروعك → **Project settings** (ترس) → **Your apps** → تطبيق الويب → انسخ قيم `firebaseConfig`.
+2. على GitHub: المستودع **Daily-Routine** → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+3. أضف سراً لكل اسم **بالضبط** (الاسم حساس لحالة الأحرف):
+
+   | اسم السر في GitHub |
+   |-------------------|
+   | `NEXT_PUBLIC_FIREBASE_API_KEY` |
+   | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` |
+   | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` |
+   | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` |
+   | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` |
+   | `NEXT_PUBLIC_FIREBASE_APP_ID` |
+   | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (اختياري؛ إن لم يوجد اتركه فارغاً أو أنشئ سراً بقيمة فارغة إن سمح GitHub) |
+
+4. من تبويب **Actions** شغّل سير العمل **Deploy to GitHub Pages** يدوياً (**Run workflow**) أو ادفع أي commit إلى `main` لإعادة البناء.
+5. انتظر اكتمال النشر ثم حدّث الصفحة (يفضّل تحديثاً قوياً Ctrl+F5).
+
 ## التخزين
 
 - البيانات الافتراضية (أدوات + روتينات) تُحمَّل من `src/data/seed.ts`.
