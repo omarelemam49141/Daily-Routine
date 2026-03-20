@@ -37,8 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let unsub: (() => void) | undefined;
     let cancelled = false;
 
+    const safetyTimer = window.setTimeout(() => {
+      if (cancelled) return;
+      console.warn("[Auth] Firebase init timed out — check network / secrets / ad blockers");
+      setHasFirebase(false);
+      setUser(null);
+      setAuthResolved(true);
+    }, 12_000);
+
     void getFirebase()
       .then((fb) => {
+        window.clearTimeout(safetyTimer);
         if (cancelled) return;
         if (!fb) {
           setHasFirebase(false);
@@ -57,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       })
       .catch((e) => {
+        window.clearTimeout(safetyTimer);
         console.error("[Auth] Firebase:", e);
         setHasFirebase(false);
         setUser(null);
@@ -65,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(safetyTimer);
       unsub?.();
     };
   }, [requireAuth]);

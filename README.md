@@ -58,6 +58,8 @@ npx --yes serve out
 4. من تبويب **Actions** شغّل سير العمل **Deploy to GitHub Pages** يدوياً (**Run workflow**) أو ادفع أي commit إلى `main` لإعادة البناء.
 5. انتظر اكتمال النشر ثم حدّث الصفحة (يفضّل تحديثاً قوياً Ctrl+F5).
 
+إذا بقي التطبيق على «جاري التحميل…» بعد النشر: في DevTools → **Application** → **Service workers** فعّل **Unregister** (أو **Update on reload**) ثم أعد تحميل الصفحة — النسخة القديمة من `sw.js` قد تكون خزّنت صفحة خاطئة لمسار `/login`.
+
 ## التخزين
 
 - البيانات الافتراضية (أدوات + روتينات) تُحمَّل من `src/data/seed.ts`.

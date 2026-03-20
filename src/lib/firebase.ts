@@ -32,6 +32,7 @@ function readConfig() {
 }
 
 let cached: FirebaseClients | null | undefined;
+let initPromise: Promise<FirebaseClients | null> | null = null;
 
 /** Avoid hanging forever if `isSupported()` never resolves (some browsers / privacy modes). */
 async function messagingSupported(): Promise<boolean> {
@@ -47,8 +48,7 @@ async function messagingSupported(): Promise<boolean> {
   }
 }
 
-export async function getFirebase(): Promise<FirebaseClients | null> {
-  if (cached !== undefined) return cached;
+async function initFirebase(): Promise<FirebaseClients | null> {
   try {
     const config = readConfig();
     if (!config) {
@@ -72,7 +72,18 @@ export async function getFirebase(): Promise<FirebaseClients | null> {
     console.error("[Firebase] init failed:", e);
     cached = null;
     return null;
+  } finally {
+    initPromise = null;
   }
+}
+
+/** Single in-flight init — avoids duplicate `initializeApp` under React Strict Mode. */
+export async function getFirebase(): Promise<FirebaseClients | null> {
+  if (cached !== undefined) return cached;
+  if (!initPromise) {
+    initPromise = initFirebase();
+  }
+  return initPromise;
 }
 
 export async function ensureAnonymousUser(): Promise<string | null> {
