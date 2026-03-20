@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ensureAnonymousUser, getFirebase } from "@/lib/firebase";
+import { useAuth } from "@/contexts/auth-context";
+import { ensureAnonymousUser, getFirebase, signOutUser } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ type LocalBackupPayload = {
 };
 
 export default function SettingsPage() {
+  const { requireAuth, user } = useAuth();
   const resetToSeed = useHygieneStore((s) => s.resetToSeed);
   const {
     enabled,
@@ -168,39 +170,66 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Firebase (اختياري)</CardTitle>
-          <CardDescription>
-            عند إضافة مفاتيح البيئة يمكن تفعيل الدخول المجهول لاحقاً للمزامنة
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-teal-900/65 dark:text-white/60">
-            الحالة:{" "}
-            <span className="font-bold">
-              {fbOk === null
-                ? "…"
-                : fbOk
-                  ? "مُعدّ (يمكن تسجيل الدخول)"
-                  : "غير مُعد — التخزين محلي فقط"}
-            </span>
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            disabled={!fbOk}
-            onClick={async () => {
-              const uid = await ensureAnonymousUser();
-              if (uid) toast.success("تم تسجيل الدخول المجهول");
-              else toast.error("تعذر الاتصال بـ Firebase");
-            }}
-          >
-            تسجيل دخول مجهول
-          </Button>
-        </CardContent>
-      </Card>
+      {requireAuth && user ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">الحساب</CardTitle>
+            <CardDescription>تسجيل الدخول عبر Firebase — كلمة المرور ليست في المستودع</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-teal-900/65 dark:text-white/60" dir="ltr">
+              {user.email ?? user.uid}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={async () => {
+                await signOutUser();
+                toast.success("تم تسجيل الخروج");
+              }}
+            >
+              تسجيل الخروج
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {!requireAuth ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Firebase (اختياري)</CardTitle>
+            <CardDescription>
+              عند إضافة مفاتيح البيئة يمكن تفعيل الدخول المجهول لاحقاً للمزامنة
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-teal-900/65 dark:text-white/60">
+              الحالة:{" "}
+              <span className="font-bold">
+                {fbOk === null
+                  ? "…"
+                  : fbOk
+                    ? "مُعدّ (يمكن تسجيل الدخول)"
+                    : "غير مُعد — التخزين محلي فقط"}
+              </span>
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={!fbOk}
+              onClick={async () => {
+                const uid = await ensureAnonymousUser();
+                if (uid) toast.success("تم تسجيل الدخول المجهول");
+                else toast.error("تعذر الاتصال بـ Firebase");
+              }}
+            >
+              تسجيل دخول مجهول
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border-rose-300/40">
         <CardHeader>

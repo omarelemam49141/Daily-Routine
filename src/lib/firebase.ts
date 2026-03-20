@@ -1,5 +1,12 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAuth, signInAnonymously, type Auth } from "firebase/auth";
+import {
+  getAuth,
+  signInAnonymously,
+  signInWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  type Auth,
+} from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getMessaging, isSupported, type Messaging } from "firebase/messaging";
 
@@ -56,4 +63,22 @@ export async function ensureAnonymousUser(): Promise<string | null> {
   if (auth.currentUser) return auth.currentUser.uid;
   const cred = await signInAnonymously(auth);
   return cred.user.uid;
+}
+
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  const fb = await getFirebase();
+  if (!fb) throw new Error("Firebase not configured");
+  await signInWithEmailAndPassword(fb.auth, email.trim(), password);
+}
+
+export async function signOutUser(): Promise<void> {
+  const fb = await getFirebase();
+  if (!fb) return;
+  await signOut(fb.auth);
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  const fb = await getFirebase();
+  if (!fb) throw new Error("Firebase not configured");
+  await sendPasswordResetEmail(fb.auth, email.trim());
 }

@@ -28,8 +28,12 @@ npx --yes serve out
 ## GitHub Pages
 
 1. في المستودع على GitHub: **Settings → Pages → Build and deployment → Source** اختر **GitHub Actions**.
-2. ادفع إلى الفرع `main` — سيعمل سير العمل [deploy-github-pages.yml](.github/workflows/deploy-github-pages.yml) تلقائياً (`npm ci` ثم `npm run build` مع `basePath` = اسم المستودع، مثل `/Daily-Routine`).
-3. الرابط يكون عادة: `https://omarelemam49141.github.io/Daily-Routine/`
+2. أضف أسرار **Actions** (نفس أسماء المتغيرات): `NEXT_PUBLIC_FIREBASE_*` كما في [.env.example](.env.example).  
+   كلمة المرور **لا تُوضع في الكود** — تُنشأ مستخدم Email/Password من [Firebase Console](https://console.firebase.google.com) → Authentication → Users.
+3. في Firebase: **Authentication → Sign-in method** فعّل **Email/Password**، ثم **Authentication → Users → Add user** (بريدك + كلمة المرور).  
+   وأضف في **Authentication → Settings → Authorized domains** النطاق: `omarelemam49141.github.io`.
+4. ادفع إلى الفرع `main` — سيعمل سير العمل [deploy-github-pages.yml](.github/workflows/deploy-github-pages.yml) (`NEXT_PUBLIC_REQUIRE_AUTH=true` + بناء ثابت).
+5. الرابط: `https://omarelemam49141.github.io/Daily-Routine/` — تظهر شاشة تسجيل الدخول قبل التطبيق.
 
 > **ملاحظة:** صفحات تفاصيل الروتين `/routines/[id]` تُبنى مسبقاً لروتينات الـ seed فقط. روابط معرفات جديدة (مضافة يدوياً) قد لا تعمل عند فتحها مباشرة على الاستضافة الثابتة.
 
@@ -38,13 +42,12 @@ npx --yes serve out
 - البيانات الافتراضية (أدوات + روتينات) تُحمَّل من `src/data/seed.ts`.
 - التعديلات تُحفظ في **localStorage** عبر Zustand (`persist`).
 
-## Firebase (اختياري)
+## Firebase
 
-1. أنشئ مشروع Firebase وفعّل **Anonymous Auth** و**Firestore**.
-2. انسخ `.env.example` إلى `.env.local` واملأ المتغيرات `NEXT_PUBLIC_FIREBASE_*`.
-3. انشر قواعد `firebase/firestore.rules`.
-
-بدون المفاتيح يعمل التطبيق بالكامل محلياً.
+- **الإنتاج (GitHub Pages):** الدخول بـ **البريد + كلمة المرور** عبر Firebase؛ المفاتيح العامة `NEXT_PUBLIC_*` تُمرَّر من أسرار GitHub عند البناء، و**كلمة المرور تبقى في Firebase فقط** (لا تُرفع للمستودع).
+- **التطوير المحلي بدون حماية:** اترك `NEXT_PUBLIC_REQUIRE_AUTH=false` (افتراضي في [.env.example](.env.example)) — التطبيق يعمل بدون تسجيل دخول.
+- **تسجيل دخول مجهول (اختياري):** عندما `NEXT_PUBLIC_REQUIRE_AUTH=false` ووُجدت مفاتيح Firebase، يمكن استخدام «تسجيل دخول مجهول» من الإعدادات للاستعداد للمزامنة لاحقاً.
+- **Firestore:** إن أردت مزامنة سحابية لاحقاً، انشر قواعد `firebase/firestore.rules`.
 
 ## PWA
 
@@ -64,4 +67,5 @@ npx --yes serve out
 | `/budget`  | أسعار + رسم بياني |
 | `/products`| كتالوج و CRUD  |
 | `/more`    | تثبيت + روابط  |
-| `/settings`| تذكيرات + Firebase |
+| `/login`   | تسجيل الدخول (عند تفعيل `NEXT_PUBLIC_REQUIRE_AUTH`) |
+| `/settings`| تذكيرات + الحساب / Firebase |
