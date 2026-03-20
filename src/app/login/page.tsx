@@ -44,7 +44,11 @@ export default function LoginPage() {
     }
   };
 
-  if (!requireAuth || authenticated) {
+  if (!requireAuth) {
+    return null;
+  }
+
+  if (authenticated) {
     return null;
   }
 

@@ -17,7 +17,7 @@ const items = [
 export function BottomNav() {
   const pathname = usePathname();
 
-  if (pathname === "/login") {
+  if (pathname.replace(/\/+$/, "") === "/login") {
     return null;
   }
 

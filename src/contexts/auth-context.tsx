@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -28,9 +29,13 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const requireAuth = isAuthRequired();
-  const [authenticated, setAuthenticated] = useState(() =>
-    requireAuth ? hasSession() : true,
-  );
+  const [authenticated, setAuthenticated] = useState(!requireAuth);
+
+  useEffect(() => {
+    if (requireAuth && hasSession()) {
+      setAuthenticated(true);
+    }
+  }, [requireAuth]);
 
   const login = useCallback(
     async (password: string): Promise<boolean> => {

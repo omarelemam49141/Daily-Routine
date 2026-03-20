@@ -39,6 +39,21 @@ body {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
 
+/* Page enter animation (CSS-only — no JS dependency for opacity) */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-page-in {
+  animation: page-in 0.28s ease-out both;
+}
+
 /* Decorative motion system (ported from `Ishhar in shaa allah`, adapted to teal theme) */
 
 /* Modal grow: nice “pop in” for dialog inner content. */
