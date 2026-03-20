@@ -16,9 +16,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthProvider>
-      <AuthGate>{children}</AuthGate>
+      <AuthGate>
+        {children}
+        <ReminderRunner />
+      </AuthGate>
       <Toaster richColors position="top-center" dir="rtl" />
-      <ReminderRunner />
     </AuthProvider>
   );
 }

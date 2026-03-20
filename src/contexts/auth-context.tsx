@@ -2,92 +2,57 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
-import { onAuthStateChanged, type User } from "firebase/auth";
-import { getFirebase } from "@/lib/firebase";
+import {
+  clearSession,
+  getExpectedHash,
+  hasSession,
+  isAuthRequired,
+  setSession,
+  sha256,
+} from "@/lib/auth-hash";
 
 type AuthContextValue = {
   requireAuth: boolean;
-  authResolved: boolean;
-  hasFirebase: boolean;
-  user: User | null;
+  authenticated: boolean;
+  login: (password: string) => Promise<boolean>;
+  logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const requireAuth = process.env.NEXT_PUBLIC_REQUIRE_AUTH === "true";
-  const [authResolved, setAuthResolved] = useState(!requireAuth);
-  const [hasFirebase, setHasFirebase] = useState(!requireAuth);
-  const [user, setUser] = useState<User | null>(null);
+  const requireAuth = isAuthRequired();
+  const [authenticated, setAuthenticated] = useState(() =>
+    requireAuth ? hasSession() : true,
+  );
 
-  useEffect(() => {
-    if (!requireAuth) {
-      setAuthResolved(true);
-      setHasFirebase(true);
-      setUser(null);
-      return;
-    }
+  const login = useCallback(
+    async (password: string): Promise<boolean> => {
+      const hash = await sha256(password);
+      if (hash === getExpectedHash()) {
+        setSession();
+        setAuthenticated(true);
+        return true;
+      }
+      return false;
+    },
+    [],
+  );
 
-    let unsub: (() => void) | undefined;
-    let cancelled = false;
-
-    const safetyTimer = window.setTimeout(() => {
-      if (cancelled) return;
-      console.warn("[Auth] Firebase init timed out — check network / secrets / ad blockers");
-      setHasFirebase(false);
-      setUser(null);
-      setAuthResolved(true);
-    }, 12_000);
-
-    void getFirebase()
-      .then((fb) => {
-        window.clearTimeout(safetyTimer);
-        if (cancelled) return;
-        if (!fb) {
-          setHasFirebase(false);
-          setUser(null);
-          setAuthResolved(true);
-          return;
-        }
-        setHasFirebase(true);
-        if (!cancelled) {
-          setUser(fb.auth.currentUser);
-          setAuthResolved(true);
-        }
-        unsub = onAuthStateChanged(fb.auth, (u) => {
-          if (cancelled) return;
-          setUser(u);
-        });
-      })
-      .catch((e) => {
-        window.clearTimeout(safetyTimer);
-        console.error("[Auth] Firebase:", e);
-        setHasFirebase(false);
-        setUser(null);
-        setAuthResolved(true);
-      });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(safetyTimer);
-      unsub?.();
-    };
-  }, [requireAuth]);
+  const logout = useCallback(() => {
+    clearSession();
+    setAuthenticated(false);
+  }, []);
 
   const value = useMemo(
-    () => ({
-      requireAuth,
-      authResolved,
-      hasFirebase,
-      user,
-    }),
-    [requireAuth, authResolved, hasFirebase, user],
+    () => ({ requireAuth, authenticated, login, logout }),
+    [requireAuth, authenticated, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

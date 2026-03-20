@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRef, type ChangeEvent } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
-import { ensureAnonymousUser, getFirebase, signOutUser } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +28,7 @@ type LocalBackupPayload = {
 };
 
 export default function SettingsPage() {
-  const { requireAuth, user } = useAuth();
+  const { requireAuth, authenticated, logout } = useAuth();
   const resetToSeed = useHygieneStore((s) => s.resetToSeed);
   const {
     enabled,
@@ -43,12 +42,7 @@ export default function SettingsPage() {
   } = useNotificationSettings();
   const requestPerm = useRequestBrowserNotificationPermission();
 
-  const [fbOk, setFbOk] = useState<boolean | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    void getFirebase().then((f) => setFbOk(Boolean(f)));
-  }, []);
 
   const exportLocalData = () => {
     try {
@@ -108,7 +102,7 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-black text-teal-950 dark:text-white">الإعدادات</h1>
         <p className="text-sm text-teal-900/55 dark:text-white/50">
-          تذكيرات، سحابة اختيارية، وإعادة ضبط البيانات
+          تذكيرات وإعادة ضبط البيانات
         </p>
       </div>
 
@@ -170,62 +164,22 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {requireAuth && user ? (
+      {requireAuth && authenticated ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">الحساب</CardTitle>
-            <CardDescription>تسجيل الدخول عبر Firebase — كلمة المرور ليست في المستودع</CardDescription>
+            <CardTitle className="text-base">الجلسة</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-teal-900/65 dark:text-white/60" dir="ltr">
-              {user.email ?? user.uid}
-            </p>
+          <CardContent>
             <Button
               type="button"
               variant="outline"
               className="w-full"
-              onClick={async () => {
-                await signOutUser();
+              onClick={() => {
+                logout();
                 toast.success("تم تسجيل الخروج");
               }}
             >
               تسجيل الخروج
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {!requireAuth ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Firebase (اختياري)</CardTitle>
-            <CardDescription>
-              عند إضافة مفاتيح البيئة يمكن تفعيل الدخول المجهول لاحقاً للمزامنة
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-teal-900/65 dark:text-white/60">
-              الحالة:{" "}
-              <span className="font-bold">
-                {fbOk === null
-                  ? "…"
-                  : fbOk
-                    ? "مُعدّ (يمكن تسجيل الدخول)"
-                    : "غير مُعد — التخزين محلي فقط"}
-              </span>
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={!fbOk}
-              onClick={async () => {
-                const uid = await ensureAnonymousUser();
-                if (uid) toast.success("تم تسجيل الدخول المجهول");
-                else toast.error("تعذر الاتصال بـ Firebase");
-              }}
-            >
-              تسجيل دخول مجهول
             </Button>
           </CardContent>
         </Card>

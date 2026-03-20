@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useHygieneStore, toDateKey } from "@/stores/hygiene-store";
 import { useNotificationSettings } from "@/hooks/use-notification-settings";
-import { useAuth } from "@/contexts/auth-context";
 
 function matchesNow(hhmm: string): boolean {
   const [h, m] = hhmm.split(":").map(Number);
@@ -13,7 +12,6 @@ function matchesNow(hhmm: string): boolean {
 }
 
 export function ReminderRunner() {
-  const { requireAuth, user } = useAuth();
   const { enabled, morningTime, eveningTime, pushEnabled } =
     useNotificationSettings();
 
@@ -21,7 +19,6 @@ export function ReminderRunner() {
   const lastEvening = useRef<string | null>(null);
 
   useEffect(() => {
-    if (requireAuth && !user) return;
     if (!enabled) return;
     const id = window.setInterval(() => {
       const today = toDateKey(new Date());
@@ -77,7 +74,7 @@ export function ReminderRunner() {
     }, 15_000);
 
     return () => window.clearInterval(id);
-  }, [requireAuth, user, enabled, eveningTime, morningTime, pushEnabled]);
+  }, [enabled, eveningTime, morningTime, pushEnabled]);
 
   return null;
 }
