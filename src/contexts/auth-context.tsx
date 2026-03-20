@@ -35,22 +35,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let unsub: (() => void) | undefined;
+    let cancelled = false;
 
-    void getFirebase().then((fb) => {
-      if (!fb) {
+    void getFirebase()
+      .then((fb) => {
+        if (cancelled) return;
+        if (!fb) {
+          setHasFirebase(false);
+          setUser(null);
+          setAuthResolved(true);
+          return;
+        }
+        setHasFirebase(true);
+        if (!cancelled) {
+          setUser(fb.auth.currentUser);
+          setAuthResolved(true);
+        }
+        unsub = onAuthStateChanged(fb.auth, (u) => {
+          if (cancelled) return;
+          setUser(u);
+        });
+      })
+      .catch((e) => {
+        console.error("[Auth] Firebase:", e);
         setHasFirebase(false);
         setUser(null);
         setAuthResolved(true);
-        return;
-      }
-      setHasFirebase(true);
-      unsub = onAuthStateChanged(fb.auth, (u) => {
-        setUser(u);
-        setAuthResolved(true);
       });
-    });
 
-    return () => unsub?.();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }, [requireAuth]);
 
   const value = useMemo(

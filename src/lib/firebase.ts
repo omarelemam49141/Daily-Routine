@@ -33,26 +33,46 @@ function readConfig() {
 
 let cached: FirebaseClients | null | undefined;
 
+/** Avoid hanging forever if `isSupported()` never resolves (some browsers / privacy modes). */
+async function messagingSupported(): Promise<boolean> {
+  try {
+    return await Promise.race([
+      isSupported(),
+      new Promise<boolean>((resolve) => {
+        window.setTimeout(() => resolve(false), 2500);
+      }),
+    ]);
+  } catch {
+    return false;
+  }
+}
+
 export async function getFirebase(): Promise<FirebaseClients | null> {
   if (cached !== undefined) return cached;
-  const config = readConfig();
-  if (!config) {
+  try {
+    const config = readConfig();
+    if (!config) {
+      cached = null;
+      return null;
+    }
+    const app = getApps().length ? getApps()[0]! : initializeApp(config);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let messaging: Messaging | null = null;
+    if (typeof window !== "undefined" && (await messagingSupported())) {
+      try {
+        messaging = getMessaging(app);
+      } catch {
+        messaging = null;
+      }
+    }
+    cached = { app, auth, db, messaging };
+    return cached;
+  } catch (e) {
+    console.error("[Firebase] init failed:", e);
     cached = null;
     return null;
   }
-  const app = getApps().length ? getApps()[0]! : initializeApp(config);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  let messaging: Messaging | null = null;
-  if (typeof window !== "undefined" && (await isSupported())) {
-    try {
-      messaging = getMessaging(app);
-    } catch {
-      messaging = null;
-    }
-  }
-  cached = { app, auth, db, messaging };
-  return cached;
 }
 
 export async function ensureAnonymousUser(): Promise<string | null> {
